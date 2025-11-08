@@ -35,6 +35,8 @@ class GeminiClient:
         api_key = os.getenv('GEMINI_API_KEY')
         if api_key:
             try:
+                # Configure with API key for Google AI Studio
+                # Note: This uses ai.google.dev endpoint, not cloud.google.com
                 genai.configure(api_key=api_key)
                 self.api_key = api_key
                 self.auth_method = "API_KEY"
@@ -65,7 +67,10 @@ class GeminiClient:
 
     def _authenticate_with_gcloud(self) -> bool:
         """
-        Authenticate using gcloud CLI.
+        Authenticate using gcloud CLI with Application Default Credentials.
+
+        For gcloud authentication, the google-generativeai library automatically
+        picks up Application Default Credentials. We just need to verify they exist.
 
         Returns:
             bool: True if authentication successful
@@ -95,20 +100,13 @@ class GeminiClient:
                 print("  Run: gcloud auth application-default login")
                 return False
 
-            # Get the access token
-            access_token = result.stdout.strip()
-            if not access_token:
-                return False
-
-            # Configure genai with the access token
-            # Note: For production use, you might need to handle token refresh
-            genai.configure(api_key=access_token)
-
-            # Verify the connection
+            # Don't configure genai - it will automatically pick up ADC
+            # Just verify the connection works
             if self._verify_connection():
                 return True
             else:
-                print("✗ gcloud authentication succeeded but API connection failed")
+                print("✗ gcloud credentials found but API connection failed")
+                print("  Note: Ensure you're using a Google Cloud project with Gemini API enabled")
                 return False
 
         except subprocess.TimeoutExpired:
